@@ -1,4 +1,3 @@
-// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -8,15 +7,20 @@ import { fileURLToPath } from 'url';
 dotenv.config();
 
 const app = express();
-const port = 3000;
 
-// Get the directory name of the current module
+// This is the correct way to get the directory name when using ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middlewares to parse JSON and serve static files
 app.use(express.json({ limit: '10mb' })); // Increase limit for image data
-app.use(express.static(path.join(__dirname))); // Serve static files like index.html
+app.use(express.static(__dirname)); // Serves other static files if you add them (e.g., CSS)
+
+// Explicitly define the route for the homepage to serve index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 
 // API endpoint that mimics your serverless function
 app.post('/api/transcribe', async (request, response) => {
@@ -30,6 +34,7 @@ app.post('/api/transcribe', async (request, response) => {
     const requestPayload = request.body;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
+    // Using global fetch which is available in modern Node.js runtimes like on Vercel
     const geminiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +56,5 @@ app.post('/api/transcribe', async (request, response) => {
   }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+// Export the app handler for Vercel.
+export default app;
