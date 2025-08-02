@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting to Text & Proofreader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border: 4px solid #4b5563; /* gray-600 */
+            border-top: 4px solid #ec4899; /* pink-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #image-preview-container {
+            width: 100%;
+            max-height: 400px;
+            overflow: hidden;
+        }
+        #image-preview {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex items-center justify-center min-h-screen py-12">
+    <div class="container mx-auto p-4 max-w-4xl">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 border border-pink-900/50">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-pink-500 mb-6">Hey Snigdha!!!</h1>
+
+            <!-- Upload Section -->
+            <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6">
+                <h2 class="text-xl font-semibold text-pink-300 mb-4">1. Upload a Handwritten Document</h2>
+                <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900/50 file:text-pink-300 hover:file:bg-pink-800/50 cursor-pointer"/>
+                <div id="image-preview-container" class="mt-4 border rounded-lg bg-black/20 hidden">
+                    <img id="image-preview" src="#" alt="Image Preview" />
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mb-6">
+                 <button id="transcribe-btn" class="px-6 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed" disabled>
+                    Transcribe
+                </button>
+                 <button id="clear-btn" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition-transform transform hover:scale-105">
+                    Clear All
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-section" class="space-y-6 hidden">
+                <!-- Transcribed Text -->
+                <div>
+                    <h2 class="text-xl font-semibold text-pink-300 mb-2">2. Transcribed Text</h2>
+                    <div id="transcribed-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
+                        <div id="loader-transcribe" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                        <div id="transcribed-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] whitespace-pre-wrap"></div>
+                        <button id="copy-transcribed-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
+                    </div>
+                    <div id="copy-transcribed-message" class="text-pink-400 mt-1 text-sm text-right"></div>
+                    <div class="text-center mt-4">
+                        <button id="proofread-btn" class="px-6 py-2 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed" disabled>
+                            Proofread Text
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Proofread Text -->
+                <div id="proofread-section" class="hidden">
+                    <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text</h2>
+                     <div id="proofread-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
+                        <div id="loader-proofread" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                        <div id="proofread-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] whitespace-pre-wrap"></div>
+                        <button id="copy-proofread-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
+                    </div>
+                    <div id="copy-proofread-message" class="text-pink-400 mt-1 text-sm text-right"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const transcribeBtn = document.getElementById('transcribe-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const proofreadBtn = document.getElementById('proofread-btn');
+        
+        const resultsSection = document.getElementById('results-section');
+        const proofreadSection = document.getElementById('proofread-section');
+
+        const transcribedTextDiv = document.getElementById('transcribed-text');
+        const proofreadTextDiv = document.getElementById('proofread-text');
+        
+        const loaderTranscribe = document.getElementById('loader-transcribe');
+        const loaderProofread = document.getElementById('loader-proofread');
+
+        const copyTranscribedBtn = document.getElementById('copy-transcribed-btn');
+        const copyProofreadBtn = document.getElementById('copy-proofread-btn');
+        const copyTranscribedMessage = document.getElementById('copy-transcribed-message');
+        const copyProofreadMessage = document.getElementById('copy-proofread-message');
+
+        let base64ImageData = null;
+
+        // Event Listeners
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    base64ImageData = event.target.result.split(',')[1];
+                    transcribeBtn.disabled = false;
+                    resultsSection.classList.add('hidden'); // Hide old results
+                    transcribedTextDiv.textContent = '';
+                    proofreadTextDiv.textContent = '';
+                    proofreadBtn.disabled = true;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            imageUpload.value = '';
+            imagePreview.src = '#';
+            imagePreviewContainer.classList.add('hidden');
+            base64ImageData = null;
+            transcribeBtn.disabled = true;
+            proofreadBtn.disabled = true;
+            resultsSection.classList.add('hidden');
+            proofreadSection.classList.add('hidden');
+            transcribedTextDiv.textContent = '';
+            proofreadTextDiv.textContent = '';
+            copyTranscribedMessage.textContent = '';
+            copyProofreadMessage.textContent = '';
+        });
+
+        transcribeBtn.addEventListener('click', async () => {
+            if (!base64ImageData) return;
+
+            resultsSection.classList.remove('hidden');
+            proofreadSection.classList.add('hidden');
+            transcribedTextDiv.textContent = '';
+            loaderTranscribe.classList.remove('hidden');
+            transcribeBtn.disabled = true;
+            proofreadBtn.disabled = true;
+
+            try {
+                const prompt = "Transcribe the handwriting in the image. Return only the transcribed text.";
+                const text = await callGeminiAPI(prompt, base64ImageData);
+                transcribedTextDiv.textContent = text.trim();
+                if (text.trim()) {
+                    proofreadBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error during transcription:', error);
+                transcribedTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
+            } finally {
+                loaderTranscribe.classList.add('hidden');
+                transcribeBtn.disabled = false;
+            }
+        });
+
+        proofreadBtn.addEventListener('click', async () => {
+            const textToProofread = transcribedTextDiv.textContent;
+            if (!textToProofread) return;
+
+            proofreadSection.classList.remove('hidden');
+            proofreadTextDiv.textContent = '';
+            loaderProofread.classList.remove('hidden');
+            proofreadBtn.disabled = true;
+
+            try {
+                const prompt = `Please proofread and correct the following text for any grammatical errors, spelling mistakes, or typos. Return only the corrected text, without any introductory phrases.\n\nText to proofread:\n"${textToProofread}"`;
+                const correctedText = await callGeminiAPI(prompt);
+                proofreadTextDiv.textContent = correctedText.trim();
+            } catch (error) {
+                console.error('Error during proofreading:', error);
+                proofreadTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
+            } finally {
+                loaderProofread.classList.add('hidden');
+                proofreadBtn.disabled = false;
+            }
+        });
+
+        copyTranscribedBtn.addEventListener('click', () => {
+            copyToClipboard(transcribedTextDiv.textContent, copyTranscribedMessage);
+        });
+
+        copyProofreadBtn.addEventListener('click', () => {
+            copyToClipboard(proofreadTextDiv.textContent, copyProofreadMessage);
+        });
+
+
+        // Helper Functions
+        async function callGeminiAPI(prompt, imageData = null) {
+            const parts = [{ text: prompt }];
+            if (imageData) {
+                parts.push({ inlineData: { mimeType: "image/png", data: imageData } });
+            }
+
+            const payload = { contents: [{ parts: parts }] };
+
+            const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `API request failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('Could not process the request. The response from the model was empty.');
+            }
+        }
+
+        function copyToClipboard(text, messageElement) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                messageElement.textContent = 'Copied!';
+                setTimeout(() => { messageElement.textContent = ''; }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                messageElement.textContent = 'Failed to copy!';
+            }
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+</html>
