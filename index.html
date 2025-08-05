@@ -37,9 +37,8 @@
 <body class="bg-gray-900 flex items-center justify-center min-h-screen py-12">
     <div class="container mx-auto p-4 max-w-4xl">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 border border-pink-900/50">
-            <h1 class="text-3xl md:text-4xl font-bold text-center text-pink-500 mb-6">Hey Snigdha!!!</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-pink-500 mb-6">Hello Snigdha (No exclamation mark)</h1>
 
-            <!-- Upload Section -->
             <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6">
                 <h2 class="text-xl font-semibold text-pink-300 mb-4">1. Upload a Handwritten Document</h2>
                 <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900/50 file:text-pink-300 hover:file:bg-pink-800/50 cursor-pointer"/>
@@ -48,19 +47,16 @@
                 </div>
             </div>
 
-            <!-- Action Buttons -->
             <div class="text-center mb-6">
                  <button id="transcribe-btn" class="px-6 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed" disabled>
-                    Transcribe
+                    Transcribe(Ask Nicely)
                 </button>
                  <button id="clear-btn" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 transition-transform transform hover:scale-105">
-                    Clear All
+                    Clear All(Once again, Ask Nicely)
                 </button>
             </div>
 
-            <!-- Results Section -->
             <div id="results-section" class="space-y-6 hidden">
-                <!-- Transcribed Text -->
                 <div>
                     <h2 class="text-xl font-semibold text-pink-300 mb-2">2. Transcribed Text</h2>
                     <div id="transcribed-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
@@ -71,12 +67,11 @@
                     <div id="copy-transcribed-message" class="text-pink-400 mt-1 text-sm text-right"></div>
                     <div class="text-center mt-4">
                         <button id="proofread-btn" class="px-6 py-2 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed" disabled>
-                            Proofread Text
+                            Proofread Text(You didn't ask nicely 😔)
                         </button>
                     </div>
                 </div>
 
-                <!-- Proofread Text -->
                 <div id="proofread-section" class="hidden">
                     <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text</h2>
                      <div id="proofread-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
@@ -182,7 +177,7 @@
 
             resultsSection.classList.remove('hidden');
             proofreadSection.classList.add('hidden');
-            transcribedTextDiv.textContent = '';
+            transcribedTextDiv.textContent = 'Only if you ask nicely';
             loaderTranscribe.classList.remove('hidden');
             transcribeBtn.disabled = true;
             proofreadBtn.disabled = true;

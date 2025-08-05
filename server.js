@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middlewares to parse JSON and serve static files
-app.use(express.json({ limit: '10mb' })); // Increase limit for image data
+app.use(express.json({ limit: '40mb' })); // Increase limit for image data
 app.use(express.static(__dirname)); // Serves other static files if you add them (e.g., CSS)
 
 // Explicitly define the route for the homepage to serve index.html
@@ -55,7 +55,7 @@ app.post('/api/transcribe', async (request, response) => {
     return response.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
-const port = process.env.PORT || 3000;
+//const port = process.env.PORT || 3000;
 // app.listen(port, async () => {
 //   console.log(`Server running in port ${port}`);
 // });
