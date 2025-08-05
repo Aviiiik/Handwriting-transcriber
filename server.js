@@ -55,7 +55,7 @@ app.post('/api/transcribe', async (request, response) => {
     return response.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
-const port = process.env.PORT || 3000;
+//const port = process.env.PORT || 3000;
 // app.listen(port, async () => {
 //   console.log(`Server running in port ${port}`);
 // });
