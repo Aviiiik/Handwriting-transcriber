@@ -34,7 +34,7 @@ app.post('/api/transcribe', async (request, response) => {
     const requestPayload = request.body;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-    // Using global fetch which is available in modern Node.js runtimes like on Vercel
+  
     const geminiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,6 +55,10 @@ app.post('/api/transcribe', async (request, response) => {
     return response.status(500).json({ error: 'An internal server error occurred.' });
   }
 });
+const port = process.env.PORT || 3000;
+// app.listen(port, async () => {
+//   console.log(`Server running in port ${port}`);
+// });
 
 // Export the app handler for Vercel.
 export default app;
