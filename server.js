@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 // Middlewares to parse JSON and serve static files
 app.use(express.json({ limit: '40mb' })); // Increase limit for image data
-app.use(express.static(__dirname)); // Serves other static files if you add them (e.g., CSS)
+app.use(express.static(path.join(__dirname, '/'))); // Serves other static files if you add them (e.g., CSS)
 
 // Explicitly define the route for the homepage to serve index.html
 app.get("/", (req, res) => {
