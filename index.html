@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Handwriting to Text & Proofreader</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;700&family=Roboto+Mono:wght+400&family=Georgia&family=Verdana&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;700&family=Roboto+Mono:wght@400&family=Georgia&family=Verdana&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -110,35 +110,6 @@
                     </div>
                 </div>
 
-                <!-- <div id="proofread-section" class="hidden">
-                    <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text (Page View)</h2>
-
-                    <div id="reader-settings" class="flex justify-end items-center space-x-4 mb-2 text-sm">
-                        <label for="font-size" class="text-gray-400">Size:</label>
-                        <select id="font-size" class="bg-gray-700 text-gray-200 rounded p-1">
-                            <option value="text-base">Small</option>
-                            <option value="text-lg" selected>Medium</option>
-                            <option value="text-xl">Large</option>
-                        </select>
-
-                        <label for="font-family" class="text-gray-400">Font:</label>
-                        <select id="font-family" class="bg-gray-700 text-gray-200 rounded p-1">
-                            <option value="font-sans" selected>Inter (Sans)</option>
-                            <option value="font-serif-book">Lora (Serif Book)</option>
-                            <option value="font-mono-code">Mono (Code)</option>
-                            <option value="font-georgia">Georgia (Classic Serif)</option>
-                            <option value="font-verdana">Verdana (Classic Sans)</option>
-                        </select>
-                    </div>
-
-                     <div id="proofread-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
-                        <div id="loader-proofread" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-                        <div id="proofread-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] text-lg font-sans whitespace-pre-wrap"></div>
-                        <button id="copy-proofread-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
-                    </div>
-                    <div id="copy-proofread-message" class="text-pink-400 mt-1 text-sm text-right"></div>
-                </div> -->
-...
                 <div id="proofread-section" class="hidden">
                     <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text (Send back photos)</h2>
 
@@ -172,8 +143,8 @@
                         <span id="proofread-page-counter" class="text-gray-200 whitespace-nowrap">Page 1 of 1 </span>
                         <button id="proofread-next-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>Next &rightarrow;</button>
                     </div>
-                    </div>
-...
+                </div>
+
                 <div id="resource-generation-section" class="hidden text-center mt-6 space-y-4">
                     <h2 class="text-xl font-semibold text-pink-300 mb-4">4. Generate Resources </h2>
                     <div id="loader-resources" class="loader hidden mx-auto mb-4"></div>
@@ -195,6 +166,507 @@
         </div>
     </div>
 
-  <script src="index.js"></script>
+    <script>
+        // DOM Elements
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const transcribeBtn = document.getElementById('transcribe-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const proofreadBtn = document.getElementById('proofread-btn');
+
+        const resultsSection = document.getElementById('results-section');
+        const proofreadSection = document.getElementById('proofread-section');
+
+        const transcribedTextDiv = document.getElementById('transcribed-text');
+        const proofreadTextDiv = document.getElementById('proofread-text');
+
+        const loaderTranscribe = document.getElementById('loader-transcribe');
+        const loaderProofread = document.getElementById('loader-proofread');
+
+        const copyTranscribedBtn = document.getElementById('copy-transcribed-btn');
+        const copyProofreadBtn = document.getElementById('copy-proofread-btn');
+        const copyTranscribedMessage = document.getElementById('copy-transcribed-message');
+        const copyProofreadMessage = document.getElementById('copy-proofread-message');
+
+        // Transcribed Reader Elements
+        const pdfControlsSection = document.getElementById('pdf-controls-section');
+        const pageRangeInput = document.getElementById('page-range-input');
+        const pageReaderControls = document.getElementById('page-reader-controls'); // Transcribed controls
+        const prevPageBtn = document.getElementById('prev-page-btn'); // Transcribed prev
+        const nextPageBtn = document.getElementById('next-page-btn'); // Transcribed next
+        const pageCounter = document.getElementById('page-counter'); // Transcribed counter
+
+        // NEW Proofread Reader Elements
+        const proofreadPageControls = document.getElementById('proofread-page-controls');
+        const proofreadPrevPageBtn = document.getElementById('proofread-prev-page-btn');
+        const proofreadNextPageBtn = document.getElementById('proofread-next-page-btn');
+        const proofreadPageCounter = document.getElementById('proofread-page-counter');
+
+        // Drag and Drop Element
+        const dropZone = document.getElementById('drop-zone'); 
+
+        // Resource Generation Elements
+        const resourceGenerationSection = document.getElementById('resource-generation-section');
+        const studyMaterialBtn = document.getElementById('study-material-btn');
+        const researchPapersBtn = document.getElementById('research-papers-btn');
+        const loaderResources = document.getElementById('loader-resources');
+        const resourceOutputDiv = document.getElementById('resource-output');
+
+        // Book Reader Controls
+        const fontSizeSelect = document.getElementById('font-size');
+        const fontFamilySelect = document.getElementById('font-family');
+
+
+        // State Variables
+        let uploadedFileData = null;
+        let transcribedPages = [];
+        let proofreadPages = []; 
+        let transcribedPageIndex = 0; // Dedicated index for transcribed view
+        let proofreadPageIndex = 0; // Dedicated index for proofread view
+        let globalProofreadText = ''; 
+
+
+        // --- Core UI Functions ---
+
+        function updateTranscribedUI() {
+            const dataArray = transcribedPages;
+            const totalPages = dataArray.length;
+            
+            // Display content
+            if (totalPages > 0) {
+                if (transcribedPageIndex >= totalPages) transcribedPageIndex = 0;
+                
+                transcribedTextDiv.textContent = dataArray[transcribedPageIndex].content;
+                
+                // Update controls visibility and state
+                if (totalPages > 1) {
+                    pageReaderControls.classList.remove('hidden');
+                    pageCounter.textContent = `Page ${transcribedPageIndex + 1} of ${totalPages} (Transcribed)`;
+                    prevPageBtn.disabled = transcribedPageIndex === 0;
+                    nextPageBtn.disabled = transcribedPageIndex === totalPages - 1;
+                } else {
+                    pageReaderControls.classList.add('hidden');
+                }
+                proofreadBtn.disabled = false;
+            } else {
+                pageReaderControls.classList.add('hidden');
+                proofreadBtn.disabled = true;
+            }
+        }
+
+        function updateProofreadUI() {
+            const dataArray = proofreadPages;
+            const totalPages = dataArray.length;
+
+            // Display content
+            if (totalPages > 0) {
+                if (proofreadPageIndex >= totalPages) proofreadPageIndex = 0;
+
+                proofreadTextDiv.textContent = dataArray[proofreadPageIndex].content;
+                
+                // Update dedicated controls visibility and state
+                if (totalPages > 1) {
+                    proofreadPageControls.classList.remove('hidden');
+                    proofreadPageCounter.textContent = `Page ${proofreadPageIndex + 1} of ${totalPages} (Proofread)`;
+                    proofreadPrevPageBtn.disabled = proofreadPageIndex === 0;
+                    proofreadNextPageBtn.disabled = proofreadPageIndex === totalPages - 1;
+                } else {
+                    proofreadPageControls.classList.add('hidden');
+                }
+            } else {
+                proofreadPageControls.classList.add('hidden');
+            }
+
+            // Resource generation section is visible only if proofreading is complete
+            resourceGenerationSection.classList.toggle('hidden', globalProofreadText === '');
+        }
+
+
+        function clearResults() {
+            uploadedFileData = null;
+            transcribedPages = [];
+            proofreadPages = [];
+            globalProofreadText = ''; 
+            transcribedPageIndex = 0;
+            proofreadPageIndex = 0;
+            
+            transcribeBtn.disabled = true;
+            proofreadBtn.disabled = true;
+            
+            resultsSection.classList.add('hidden');
+            proofreadSection.classList.add('hidden');
+            resourceGenerationSection.classList.add('hidden');
+            
+            transcribedTextDiv.textContent = '';
+            proofreadTextDiv.textContent = '';
+            resourceOutputDiv.innerHTML = 'Resources will appear here.';
+            copyTranscribedMessage.textContent = '';
+            copyProofreadMessage.textContent = '';
+            
+            pageReaderControls.classList.add('hidden');
+            proofreadPageControls.classList.add('hidden');
+        }
+
+
+        // --- Reusable File Handler ---
+        function handleFile(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                uploadedFileData = {
+                    data: event.target.result.split(',')[1],
+                    mimeType: file.type
+                };
+                transcribeBtn.disabled = false;
+            };
+            
+            if (file.type.startsWith('image/')) {
+                reader.readAsDataURL(file);
+                imagePreview.src = URL.createObjectURL(file);
+                imagePreviewContainer.classList.remove('hidden');
+                pdfControlsSection.classList.add('hidden');
+                pageRangeInput.value = 'all';
+            } else if (file.type === 'application/pdf') {
+                reader.readAsDataURL(file);
+                imagePreviewContainer.classList.add('hidden');
+                pdfControlsSection.classList.remove('hidden');
+            } else {
+                alert("Unsupported file type. Please upload an image or a PDF.");
+                imageUpload.value = '';
+                return;
+            }
+            
+            clearResults();
+        }
+
+        // --- Resource Formatting Helper ---
+        function formatResources(markdown) {
+            if (!markdown) return '';
+            
+            let html = markdown.replace(/^[\s\t]*[*-][\s\t]*/gm, '<li>');
+            
+            const firstLiIndex = html.indexOf('<li>');
+            if (firstLiIndex !== -1) {
+                const introText = html.substring(0, firstLiIndex);
+                const listContent = html.substring(firstLiIndex);
+                html = introText + '<ol>' + listContent + '</ol>';
+            }
+            
+            html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+            html = html.replace(/\n/g, '<br>');
+            html = html.replace(/<br><br><br>/g, '<br><br>');
+
+            return html;
+        }
+
+
+        // --- API/Helper Functions ---
+        async function callGeminiAPI(prompt, fileData = null, mimeType = null, endpointType = 'transcribe') {
+            const parts = [{ text: prompt }];
+            if (fileData && mimeType) {
+                parts.push({ inlineData: { mimeType: mimeType, data: fileData } });
+            }
+            
+            const requiresJson = (endpointType === 'transcribe' || endpointType === 'proofread');
+            const generationConfig = {
+                responseMimeType: "application/json",
+            };
+
+            const payload = { 
+                contents: [{ parts: parts }],
+                ...(requiresJson && { generationConfig: generationConfig })
+            };
+            
+            const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                let errorResult = {};
+                try {
+                    errorResult = await response.json();
+                } catch (e) {
+                    throw new Error(`API request failed with status ${response.status}.`);
+                }
+                
+                if (errorResult.error) {
+                    throw new Error(errorResult.error);
+                }
+                
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0) {
+                 if (result.candidates[0].content && result.candidates[0].content.parts &&
+                     result.candidates[0].content.parts.length > 0) {
+                     return result.candidates[0].content.parts[0].text;
+                 }
+            }
+            
+            if (result.candidates && result.candidates[0].finishReason !== 'STOP') {
+                 throw new Error(`The model stopped processing for the following reason: ${result.candidates[0].finishReason}. This may be due to safety settings or an issue with the prompt.`);
+            }
+
+            throw new Error('Could not process the request. The response from the model was empty.');
+        }
+
+
+        // --- Event Listeners: Transcribe and Proofread ---
+
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            imageUpload.value = '';
+            imagePreview.src = '#';
+            imagePreviewContainer.classList.add('hidden');
+            pdfControlsSection.classList.add('hidden');
+            pageRangeInput.value = 'all';
+            clearResults();
+        });
+
+        transcribeBtn.addEventListener('click', async () => {
+            if (!uploadedFileData) return;
+
+            resultsSection.classList.remove('hidden');
+            proofreadSection.classList.add('hidden'); 
+            resourceGenerationSection.classList.add('hidden');
+            transcribedTextDiv.textContent = 'Only if you ask nicely';
+            loaderTranscribe.classList.remove('hidden');
+            transcribeBtn.disabled = true;
+            proofreadBtn.disabled = true;
+            
+            transcribedPages = [];
+            proofreadPages = []; 
+            globalProofreadText = ''; 
+            transcribedPageIndex = 0;
+            proofreadPageIndex = 0;
+
+            try {
+                const range = pageRangeInput.value.trim().toLowerCase();
+                let prompt = `Transcribe the handwriting or text from the document. ${uploadedFileData.mimeType === 'application/pdf' ? `The document is a multi-page PDF. ONLY transcribe content for the following pages/range: **${range}**.` : 'Return all text from the image.'}
+                Your output must be a single JSON object that strictly follows this structure: 
+                {\\"transcription\\": [ {\\"page\\": "1", \\"content\\": "..."} ] } 
+                The 'page' value should be the page number (as a string, starting at 1). The 'content' should be the full transcribed text for that page/image.`;
+
+                const jsonText = await callGeminiAPI(prompt, uploadedFileData.data, uploadedFileData.mimeType, 'transcribe');
+                
+                const resultObject = JSON.parse(jsonText);
+
+                if (resultObject.transcription && Array.isArray(resultObject.transcription)) {
+                    transcribedPages = resultObject.transcription.filter(p => p.content && p.content.trim() !== '');
+                    if (transcribedPages.length > 0) {
+                        updateTranscribedUI();
+                    } else {
+                        transcribedTextDiv.textContent = 'Transcription returned no text. Check the selected page range.';
+                    }
+                } else {
+                    throw new Error("API response was not in the expected structured JSON format for transcription.");
+                }
+
+            } catch (error) {
+                console.error('Error during transcription:', error);
+                transcribedTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
+            } finally {
+                loaderTranscribe.classList.add('hidden');
+                transcribeBtn.disabled = false;
+            }
+        });
+
+
+        // Proofread Button
+        proofreadBtn.addEventListener('click', async () => {
+            if (!transcribedPages || transcribedPages.length === 0) return;
+
+            proofreadSection.classList.remove('hidden'); 
+            proofreadTextDiv.textContent = 'Proofreading all pages...';
+            loaderProofread.classList.remove('hidden');
+            proofreadBtn.disabled = true;
+            
+            resourceGenerationSection.classList.add('hidden');
+            proofreadPages = []; 
+            globalProofreadText = '';
+            proofreadPageIndex = 0;
+
+            try {
+                const textToProofread = transcribedPages.map(p => `[PAGE ${p.page}]\n${p.content}`).join('\n\n---\n\n');
+
+                const prompt = `You are a meticulous proofreader. Review the following text, which contains content from multiple pages delimited by "[PAGE X]" and "---". Correct all grammatical errors, spelling mistakes, and typos.
+                Your output MUST be a single JSON object that strictly follows this structure, retaining the page numbers and corrected content for ONLY the pages provided:
+                {\\"proofreading\\": [ {\\"page\\": "1", \\"content\\": "..."} ] } 
+                The 'page' value must be the original page number (as a string). The 'content' should be the full corrected text for that page.
+
+                Text to proofread: \n"${textToProofread}"`;
+                
+                const jsonText = await callGeminiAPI(prompt, null, null, 'proofread'); 
+                
+                const resultObject = JSON.parse(jsonText);
+
+                if (resultObject.proofreading && Array.isArray(resultObject.proofreading)) {
+                    proofreadPages = resultObject.proofreading.filter(p => p.content && p.content.trim() !== '');
+                    
+                    if (proofreadPages.length > 0) {
+                        globalProofreadText = proofreadPages.map(p => p.content).join('\n\n');
+                        
+                        updateProofreadUI(); 
+                    } else {
+                        proofreadTextDiv.textContent = 'Proofreading returned no corrected text.';
+                    }
+                } else {
+                    throw new Error("API response was not in the expected structured JSON format for proofreading.");
+                }
+
+
+            } catch (error) {
+                console.error('Error during proofreading:', error);
+                proofreadTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
+            } finally {
+                loaderProofread.classList.add('hidden');
+                proofreadBtn.disabled = false;
+            }
+        });
+
+        // Resource Generation Logic
+        studyMaterialBtn.addEventListener('click', () => generateResources('study'));
+        researchPapersBtn.addEventListener('click', () => generateResources('research'));
+
+
+        async function generateResources(type) {
+            if (!globalProofreadText || globalProofreadText.trim() === '' || globalProofreadText.startsWith('Error:')) {
+                resourceOutputDiv.innerHTML = 'Please proofread the text first.';
+                return;
+            }
+            
+            resourceOutputDiv.innerHTML = 'Analyzing content and fetching links...';
+            loaderResources.classList.remove('hidden');
+            studyMaterialBtn.disabled = true;
+            researchPapersBtn.disabled = true;
+
+            try {
+                let prompt;
+                if (type === 'study') {
+                    prompt = `Using live search, analyze the main topic(s) of the ENTIRE combined document below and generate a numbered list of 5 **highly relevant and currently accessible** study material links (educational websites, videos, articles). Prioritize links from reliable, established sources (e.g., academic sites, major educational platforms). Return the output in Markdown format using links ([Link Text](URL)) for the list items. Text: "${globalProofreadText}"`;
+                } else { 
+                    prompt = `Using live search, analyze the main topic(s) of the ENTIRE combined document below and generate a numbered list of 5 **recent (published within the last 5 years) and currently accessible** research paper titles or links (e.g., Google Scholar, institutional repository links). Return the output in Markdown format using links ([Title](URL)) for the list items. Text: "${globalProofreadText}"`;
+                }
+
+                const resourceContent = await callGeminiAPI(prompt, null, null, 'resource'); 
+                
+                resourceOutputDiv.innerHTML = formatResources(resourceContent.trim());
+
+            } catch (error) {
+                console.error(`Error generating ${type} resources:`, error);
+                resourceOutputDiv.innerHTML = `Error generating resources: ${error.message}`;
+            } finally {
+                loaderResources.classList.add('hidden');
+                studyMaterialBtn.disabled = false;
+                researchPapersBtn.disabled = false;
+            }
+        }
+
+        // Book Reader Controls
+        fontSizeSelect.addEventListener('change', (e) => {
+            proofreadTextDiv.classList.remove('text-base', 'text-lg', 'text-xl');
+            proofreadTextDiv.classList.add(e.target.value);
+        });
+
+        fontFamilySelect.addEventListener('change', (e) => {
+            proofreadTextDiv.classList.remove('font-sans', 'font-serif-book', 'font-mono-code', 'font-georgia', 'font-verdana');
+            if (e.target.value === 'font-sans') {
+                proofreadTextDiv.classList.add('font-sans'); 
+            } else {
+                proofreadTextDiv.classList.add(e.target.value);
+            }
+        });
+
+
+        // Page Navigation Handlers
+
+        // Transcribed Page Navigation
+        prevPageBtn.addEventListener('click', () => {
+            if (transcribedPageIndex > 0) {
+                transcribedPageIndex--;
+                updateTranscribedUI(); 
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            if (transcribedPageIndex < transcribedPages.length - 1) {
+                transcribedPageIndex++;
+                updateTranscribedUI(); 
+            }
+        });
+
+        // Proofread Page Navigation
+        proofreadPrevPageBtn.addEventListener('click', () => {
+            if (proofreadPageIndex > 0) {
+                proofreadPageIndex--;
+                updateProofreadUI(); 
+            }
+        });
+
+        proofreadNextPageBtn.addEventListener('click', () => {
+            if (proofreadPageIndex < proofreadPages.length - 1) {
+                proofreadPageIndex++;
+                updateProofreadUI(); 
+            }
+        });
+
+
+        // Copy Buttons
+        function copyToClipboard(text, messageEl) {
+            navigator.clipboard.writeText(text).then(() => {
+                messageEl.textContent = 'Copied!';
+                setTimeout(() => messageEl.textContent = '', 2000);
+            }).catch(() => {
+                messageEl.textContent = 'Copy failed';
+            });
+        }
+
+        copyTranscribedBtn.addEventListener('click', () => {
+            copyToClipboard(transcribedTextDiv.textContent, copyTranscribedMessage);
+        });
+
+        copyProofreadBtn.addEventListener('click', () => {
+            copyToClipboard(proofreadTextDiv.textContent, copyProofreadMessage);
+        });
+
+        // Drag and Drop Event Listeners
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('bg-pink-900/20', 'border-pink-500'); 
+            dropZone.classList.remove('border-gray-600');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            dropZone.classList.remove('bg-pink-900/20', 'border-pink-500');
+            dropZone.classList.add('border-gray-600');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-pink-900/20', 'border-pink-500');
+            dropZone.classList.add('border-gray-600');
+
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                
+                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+                    handleFile(file);
+                } else {
+                     alert("Unsupported file type dropped. Please upload an image or a PDF.");
+                }
+            }
+        });
+    </script>
 </body>
 </html>
