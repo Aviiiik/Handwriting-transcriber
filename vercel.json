@@ -8,10 +8,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/transcribe",
-      "destination": "/server.js"
-    },
-    {
       "source": "/(.*)",
       "destination": "/server.js"
     }
