@@ -1,97 +1,89 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Load environment variables from .env file
+// Load env vars
 dotenv.config();
 
 const app = express();
 
-// This is the correct way to get the directory name when using ES Modules
+// __dirname fix for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Middlewares to parse JSON and serve static files
-app.use(express.json({ limit: '40mb' })); // Increase limit for image data
-app.use(express.static(path.join(__dirname))); // Serves other static files if you add them (e.g., CSS)
+// Middleware
+app.use(express.json({ limit: "40mb" }));
+app.use(express.static(__dirname));
 
-// Explicitly define the route for the homepage to serve index.html
+// Serve frontend
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-
-// API endpoint that mimics your serverless function
-app.post('/api/transcribe', async (request, response) => {
+// API route
+app.post("/api/transcribe", async (req, res) => {
   const apiKey = process.env.API_Key;
 
   if (!apiKey) {
-    return response.status(500).json({ error: 'API key is not configured on the server.' });
+    return res.status(500).json({ error: "API key not configured." });
   }
 
   try {
-    let requestPayload = request.body;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl =
+      `https://generativelanguage.googleapis.com/v1beta/models/` +
+      `gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-    // Add the Google Search Tool configuration (necessary for resource generation)
-    let payloadWithTool = { ...requestPayload };
-    if (!payloadWithTool.tools) {
-        payloadWithTool.tools = [];
+    // Clone payload from frontend
+    const payload = { ...req.body };
+
+    // ✅ Add Google Search ONLY when explicitly requested
+    if (payload.needsSearch === true) {
+      payload.tools = [{ googleSearch: {} }];
     }
-    payloadWithTool.tools.push({ googleSearch: {} });
-  
+
+    // ❗ IMPORTANT: Remove helper flag before sending to Gemini
+    delete payload.needsSearch;
+
     const geminiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payloadWithTool), 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       console.error("Gemini API Error:", errorText);
-      // Return a structured failure message for the client
-      return response.status(geminiResponse.status).json({ success: false, error: `External API failed: ${geminiResponse.status}` });
+      return res
+        .status(geminiResponse.status)
+        .json({ error: "Gemini API request failed." });
     }
 
-    const geminiResult = await geminiResponse.json();
-    
-    // --- MODIFIED LOGIC: CHECK FOR VALID CONTENT AND RETURN MESSAGE OR DATA ---
+    const result = await geminiResponse.json();
 
-    let content = null;
-    if (geminiResult.candidates && geminiResult.candidates.length > 0 && 
-        geminiResult.candidates[0].content && geminiResult.candidates[0].content.parts &&
-        geminiResult.candidates[0].content.parts.length > 0) {
-        
-        content = geminiResult.candidates[0].content.parts[0].text;
-    }
-    
-    // Check if the request originated from the frontend requiring specific content (based on app.js expectation)
-    // If content is found, return the content along with a success flag
-    if (content) {
-        // Return the content directly as expected by the frontend 'app.js' logic. 
-        // We cannot simply return a success message because the frontend needs the transcribed/proofread text 
-        // or the resource links to update the UI.
-        return response.status(200).json(geminiResult);
-    } 
-    
-    // If no content was found but the request didn't error, check for safety reasons
-    if (geminiResult.candidates && geminiResult[0].finishReason !== 'STOP') {
-        return response.status(200).json({ 
-            success: false, 
-            error: `Model stopped processing due to: ${geminiResult.candidates[0].finishReason}. Content may have been blocked.`
-        });
+    // ✅ Validate content
+    if (
+      result.candidates &&
+      result.candidates.length > 0 &&
+      result.candidates[0].content &&
+      result.candidates[0].content.parts &&
+      result.candidates[0].content.parts.length > 0
+    ) {
+      return res.status(200).json(result);
     }
 
-    // Default failure if content is empty or unexpected
-    return response.status(500).json({ success: false, error: 'AI model returned an unexpected or empty response.' });
-
-
-  } catch (error) {
-    console.error('Error in proxy function:', error);
-    return response.status(500).json({ success: false, error: 'An internal server error occurred.' });
+    return res.status(500).json({
+      error: "Gemini returned an empty or blocked response.",
+    });
+  } catch (err) {
+    console.error("Server Error:", err);
+    return res.status(500).json({ error: "Internal server error." });
   }
 });
+
+// Export for Vercel
+
+
 
 // const port = process.env.PORT || 3000;
 //   app.listen(port, async () => {
