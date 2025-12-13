@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Handwriting to Text & Proofreader</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;700&family=Roboto+Mono:wght+400&family=Georgia&family=Verdana&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Custom Font Classes */
+        .font-serif-book { font-family: 'Lora', serif; }
+        .font-mono-code { font-family: 'Roboto Mono', monospace; }
+        .font-georgia { font-family: Georgia, serif; }
+        .font-verdana { font-family: Verdana, sans-serif; }
+        
         .loader {
             border: 4px solid #4b5563; /* gray-600 */
             border-top: 4px solid #ec4899; /* pink-500 */
@@ -32,6 +38,21 @@
             height: auto;
             object-fit: contain;
         }
+        
+        /* --- Enhanced Resource Formatting --- */
+        #resource-output ol {
+            list-style: decimal inside;
+            padding-left: 1rem;
+        }
+        #resource-output li {
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+        #resource-output a {
+            color: #f472b6; /* pink-400 */
+            text-decoration: underline;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex items-center justify-center min-h-screen py-12">
@@ -39,8 +60,8 @@
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 md:p-8 border border-pink-900/50">
             <h1 class="text-3xl md:text-4xl font-bold text-center text-pink-500 mb-6">Hello Snigdha (No exclamation mark)</h1>
 
-            <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6">
-                <h2 class="text-xl font-semibold text-pink-300 mb-4">1. Upload a Handwritten Document</h2>
+            <div id="drop-zone" class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6">
+                <h2 class="text-xl font-semibold text-pink-300 mb-4">1. Upload a Handwritten Document (Drag & Drop Here)</h2>
                 <input type="file" id="image-upload" accept="image/*,application/pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900/50 file:text-pink-300 hover:file:bg-pink-800/50 cursor-pointer"/>
                 <div id="image-preview-container" class="mt-4 border rounded-lg bg-black/20 hidden">
                     <img id="image-preview" src="#" alt="Image Preview" />
@@ -68,14 +89,14 @@
 
             <div id="results-section" class="space-y-6 hidden">
                 <div>
-                    <h2 class="text-xl font-semibold text-pink-300 mb-2">2. Transcribed Text</h2>
+                    <h2 class="text-xl font-semibold text-pink-300 mb-2">2. Transcribed Text (Send feet pics)</h2>
                     <div id="transcribed-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
                         <div id="loader-transcribe" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
                         <div id="transcribed-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] whitespace-pre-wrap"></div>
                         
                         <div id="page-reader-controls" class="flex items-center justify-center space-x-4 mt-4 text-sm">
                             <button id="prev-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>&leftarrow; Prev</button>
-                            <span id="page-counter" class="text-gray-200 whitespace-nowrap">Page 1 of 1</span>
+                            <span id="page-counter" class="text-gray-200 whitespace-nowrap">Page 1 of 1 </span>
                             <button id="next-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>Next &rightarrow;</button>
                         </div>
                         
@@ -84,321 +105,96 @@
                     <div id="copy-transcribed-message" class="text-pink-400 mt-1 text-sm text-right"></div>
                     <div class="text-center mt-4">
                         <button id="proofread-btn" class="px-6 py-2 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-75 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed" disabled>
-                            Proofread Text(You didn't ask nicely )
+                            Proofread Text 
                         </button>
                     </div>
                 </div>
 
-                <div id="proofread-section" class="hidden">
-                    <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text</h2>
+                <!-- <div id="proofread-section" class="hidden">
+                    <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text (Page View)</h2>
+
+                    <div id="reader-settings" class="flex justify-end items-center space-x-4 mb-2 text-sm">
+                        <label for="font-size" class="text-gray-400">Size:</label>
+                        <select id="font-size" class="bg-gray-700 text-gray-200 rounded p-1">
+                            <option value="text-base">Small</option>
+                            <option value="text-lg" selected>Medium</option>
+                            <option value="text-xl">Large</option>
+                        </select>
+
+                        <label for="font-family" class="text-gray-400">Font:</label>
+                        <select id="font-family" class="bg-gray-700 text-gray-200 rounded p-1">
+                            <option value="font-sans" selected>Inter (Sans)</option>
+                            <option value="font-serif-book">Lora (Serif Book)</option>
+                            <option value="font-mono-code">Mono (Code)</option>
+                            <option value="font-georgia">Georgia (Classic Serif)</option>
+                            <option value="font-verdana">Verdana (Classic Sans)</option>
+                        </select>
+                    </div>
+
                      <div id="proofread-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
                         <div id="loader-proofread" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-                        <div id="proofread-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] whitespace-pre-wrap"></div>
+                        <div id="proofread-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] text-lg font-sans whitespace-pre-wrap"></div>
                         <button id="copy-proofread-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
                     </div>
                     <div id="copy-proofread-message" class="text-pink-400 mt-1 text-sm text-right"></div>
+                </div> -->
+...
+                <div id="proofread-section" class="hidden">
+                    <h2 class="text-xl font-semibold text-pink-300 mb-2">3. Proofread & Corrected Text (Send back photos)</h2>
+
+                    <div id="reader-settings" class="flex justify-end items-center space-x-4 mb-2 text-sm">
+                        <label for="font-size" class="text-gray-400">Size:</label>
+                        <select id="font-size" class="bg-gray-700 text-gray-200 rounded p-1">
+                            <option value="text-base">Small</option>
+                            <option value="text-lg" selected>Medium</option>
+                            <option value="text-xl">Large</option>
+                        </select>
+
+                        <label for="font-family" class="text-gray-400">Font:</label>
+                        <select id="font-family" class="bg-gray-700 text-gray-200 rounded p-1">
+                            <option value="font-sans" selected>Inter (Sans)</option>
+                            <option value="font-serif-book">Lora (Serif Book)</option>
+                            <option value="font-mono-code">Mono (Code)</option>
+                            <option value="font-georgia">Georgia (Classic Serif)</option>
+                            <option value="font-verdana">Verdana (Classic Sans)</option>
+                        </select>
+                    </div>
+
+                     <div id="proofread-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
+                        <div id="loader-proofread" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                        <div id="proofread-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] text-lg font-sans whitespace-pre-wrap"></div>
+                        <button id="copy-proofread-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
+                    </div>
+                    <div id="copy-proofread-message" class="text-pink-400 mt-1 text-sm text-right"></div>
+                    
+                    <div id="proofread-page-controls" class="flex items-center justify-center space-x-4 mt-4 text-sm hidden">
+                        <button id="proofread-prev-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>&leftarrow; Prev</button>
+                        <span id="proofread-page-counter" class="text-gray-200 whitespace-nowrap">Page 1 of 1 </span>
+                        <button id="proofread-next-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>Next &rightarrow;</button>
+                    </div>
+                    </div>
+...
+                <div id="resource-generation-section" class="hidden text-center mt-6 space-y-4">
+                    <h2 class="text-xl font-semibold text-pink-300 mb-4">4. Generate Resources </h2>
+                    <div id="loader-resources" class="loader hidden mx-auto mb-4"></div>
+
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button id="study-material-btn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed">
+                             Generate Study Material Links(See how nice I am)
+                        </button>
+                        <button id="research-papers-btn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-transform transform hover:scale-105 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed">
+                             Generate Research Paper Links(Because I care about your education)
+                        </button>
+                    </div>
+
+                    <div id="resource-output" class="mt-4 border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-800 text-gray-200 min-h-[100px] text-left">
+                        Resources will appear here.
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-  <script>
-        // DOM Elements
-        const imageUpload = document.getElementById('image-upload');
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const transcribeBtn = document.getElementById('transcribe-btn');
-        const clearBtn = document.getElementById('clear-btn');
-        const proofreadBtn = document.getElementById('proofread-btn');
-        
-        const resultsSection = document.getElementById('results-section');
-        const proofreadSection = document.getElementById('proofread-section');
-
-        const transcribedTextDiv = document.getElementById('transcribed-text');
-        const proofreadTextDiv = document.getElementById('proofread-text');
-        
-        const loaderTranscribe = document.getElementById('loader-transcribe');
-        const loaderProofread = document.getElementById('loader-proofread');
-
-        const copyTranscribedBtn = document.getElementById('copy-transcribed-btn');
-        const copyProofreadBtn = document.getElementById('copy-proofread-btn');
-        const copyTranscribedMessage = document.getElementById('copy-transcribed-message');
-        const copyProofreadMessage = document.getElementById('copy-proofread-message');
-
-        // NEW DOM Elements for PDF Reader
-        const pdfControlsSection = document.getElementById('pdf-controls-section');
-        const pageRangeInput = document.getElementById('page-range-input');
-        const pageReaderControls = document.getElementById('page-reader-controls');
-        const prevPageBtn = document.getElementById('prev-page-btn');
-        const nextPageBtn = document.getElementById('next-page-btn');
-        const pageCounter = document.getElementById('page-counter');
-        
-        // MODIFIED: State Variables
-        let uploadedFileData = null;
-        let transcribedPages = []; // NEW: Array to store page-by-page transcription
-        let currentPageIndex = 0; // NEW: Current page being viewed (0-indexed)
-
-
-        // --- Core Functions ---
-
-        function updateReaderUI() {
-            // Only show page controls if it's a PDF with multiple transcribed pages
-            if (uploadedFileData.mimeType === 'application/pdf' && transcribedPages.length > 1) {
-                pageReaderControls.classList.remove('hidden');
-                const pageNumber = currentPageIndex + 1;
-                pageCounter.textContent = `Page ${pageNumber} of ${transcribedPages.length}`;
-                
-                transcribedTextDiv.textContent = transcribedPages[currentPageIndex].content;
-
-                prevPageBtn.disabled = currentPageIndex === 0;
-                nextPageBtn.disabled = currentPageIndex === transcribedPages.length - 1;
-            } else {
-                 pageReaderControls.classList.add('hidden');
-                 // If only one page, or the whole text was requested, display it all
-                 if (transcribedPages.length > 0) {
-                     transcribedTextDiv.textContent = transcribedPages[0].content;
-                 } else {
-                     transcribedTextDiv.textContent = 'No content found for the selected pages.';
-                 }
-            }
-            
-            // Re-enable proofread button if there is text to proofread
-            proofreadBtn.disabled = transcribedTextDiv.textContent.trim() === '' || transcribedTextDiv.textContent.startsWith('Error:');
-        }
-
-        // --- Event Listeners ---
-
-        imageUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    uploadedFileData = {
-                        data: event.target.result.split(',')[1],
-                        mimeType: file.type
-                    };
-                    transcribeBtn.disabled = false;
-                };
-                
-                // Handle display/controls based on file type
-                if (file.type.startsWith('image/')) {
-                    reader.readAsDataURL(file);
-                    imagePreview.src = URL.createObjectURL(file);
-                    imagePreviewContainer.classList.remove('hidden');
-                    pdfControlsSection.classList.add('hidden'); // Hide PDF controls for images
-                    pageRangeInput.value = 'all'; // Reset to 'all' for single-page image
-                } else if (file.type === 'application/pdf') {
-                    reader.readAsDataURL(file);
-                    imagePreviewContainer.classList.add('hidden'); // No preview for PDF
-                    pdfControlsSection.classList.remove('hidden'); // Show PDF controls
-                    // The API can handle large PDFs (up to 1000 pages or 50MB with gemini-2.5-flash).
-                } else {
-                    alert("Unsupported file type. Please upload an image or a PDF.");
-                    imageUpload.value = '';
-                    return;
-                }
-                
-                // Reset UI for new file
-                clearResults();
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            imageUpload.value = '';
-            imagePreview.src = '#';
-            imagePreviewContainer.classList.add('hidden');
-            pdfControlsSection.classList.add('hidden'); // Hide PDF controls on clear
-            pageRangeInput.value = 'all'; // Reset range
-            clearResults();
-        });
-        
-        function clearResults() {
-            uploadedFileData = null;
-            transcribedPages = []; // Clear page data
-            currentPageIndex = 0; // Reset index
-            transcribeBtn.disabled = true;
-            proofreadBtn.disabled = true;
-            resultsSection.classList.add('hidden');
-            proofreadSection.classList.add('hidden');
-            transcribedTextDiv.textContent = '';
-            proofreadTextDiv.textContent = '';
-            copyTranscribedMessage.textContent = '';
-            copyProofreadMessage.textContent = '';
-            pageReaderControls.classList.add('hidden'); // Hide page controls
-        }
-
-        transcribeBtn.addEventListener('click', async () => {
-            if (!uploadedFileData) return;
-
-            resultsSection.classList.remove('hidden');
-            proofreadSection.classList.add('hidden');
-            transcribedTextDiv.textContent = 'Only if you ask nicely';
-            loaderTranscribe.classList.remove('hidden');
-            transcribeBtn.disabled = true;
-            proofreadBtn.disabled = true;
-            
-            // Reset state
-            transcribedPages = [];
-            currentPageIndex = 0;
-
-            try {
-                const range = pageRangeInput.value.trim().toLowerCase();
-                let prompt = `Transcribe the handwriting or text from the document. ${uploadedFileData.mimeType === 'application/pdf' ? `The document is a multi-page PDF. ONLY transcribe content for the following pages/range: **${range}**.` : 'Return all text from the image.'}
-                Your output must be a single JSON object that strictly follows this structure: 
-                {\\"transcription\\": [ {\\"page\\": "1", \\"content\\": "..."} ] } 
-                The 'page' value should be the page number (as a string, starting at 1). For a single image, use page "1". The 'content' should be the full transcribed text for that page/image.`;
-
-                // 1. Call API to get structured JSON response
-                const jsonText = await callGeminiAPI(prompt, uploadedFileData.data, uploadedFileData.mimeType);
-                
-                // 2. Parse the JSON response
-                const resultObject = JSON.parse(jsonText);
-
-                // 3. Store the result and update UI
-                if (resultObject.transcription && Array.isArray(resultObject.transcription)) {
-                    transcribedPages = resultObject.transcription.filter(p => p.content && p.content.trim() !== '');
-                    if (transcribedPages.length > 0) {
-                        currentPageIndex = 0;
-                        updateReaderUI(); // Display the first page or the single result
-                    } else {
-                        transcribedTextDiv.textContent = 'Transcription returned no text. Check the selected page range.';
-                    }
-                } else {
-                    throw new Error("API response was not in the expected structured JSON format.");
-                }
-
-            } catch (error) {
-                console.error('Error during transcription:', error);
-                transcribedTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
-            } finally {
-                loaderTranscribe.classList.add('hidden');
-                transcribeBtn.disabled = false;
-            }
-        });
-
-        proofreadBtn.addEventListener('click', async () => {
-            // Proofread the currently displayed page/text
-            const textToProofread = transcribedTextDiv.textContent;
-            if (!textToProofread) return;
-
-            proofreadSection.classList.remove('hidden');
-            proofreadTextDiv.textContent = '';
-            loaderProofread.classList.remove('hidden');
-            proofreadBtn.disabled = true;
-
-            try {
-                const prompt = `Please proofread and correct the following text for any grammatical errors, spelling mistakes, or typos. Return only the corrected text, without any introductory phrases.\n\nText to proofread:\n"${textToProofread}"`;
-                // API call for proofreading does not need file data
-                const correctedText = await callGeminiAPI(prompt); 
-                proofreadTextDiv.textContent = correctedText.trim();
-            } catch (error) {
-                console.error('Error during proofreading:', error);
-                proofreadTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
-            } finally {
-                loaderProofread.classList.add('hidden');
-                proofreadBtn.disabled = false;
-            }
-        });
-
-        // NEW: Page Navigation Handlers
-        prevPageBtn.addEventListener('click', () => {
-            if (currentPageIndex > 0) {
-                currentPageIndex--;
-                proofreadTextDiv.textContent = ''; // Clear proofread section when changing page
-                proofreadSection.classList.add('hidden');
-                updateReaderUI();
-            }
-        });
-
-        nextPageBtn.addEventListener('click', () => {
-            if (currentPageIndex < transcribedPages.length - 1) {
-                currentPageIndex++;
-                proofreadTextDiv.textContent = ''; // Clear proofread section when changing page
-                proofreadSection.classList.add('hidden');
-                updateReaderUI();
-            }
-        });
-
-        copyTranscribedBtn.addEventListener('click', () => {
-            copyToClipboard(transcribedTextDiv.textContent, copyTranscribedMessage);
-        });
-
-        copyProofreadBtn.addEventListener('click', () => {
-            copyToClipboard(proofreadTextDiv.textContent, copyProofreadMessage);
-        });
-
-
-        // Helper Functions
-        async function callGeminiAPI(prompt, fileData = null, mimeType = null) {
-            const parts = [{ text: prompt }];
-            if (fileData && mimeType) {
-                // Documents are sent as inlineData parts
-                parts.push({ inlineData: { mimeType: mimeType, data: fileData } });
-            }
-            
-            // Instruct the model to return a JSON object
-            const generationConfig = {
-                responseMimeType: "application/json",
-            };
-
-            const payload = { 
-                contents: [{ parts: parts }],
-                // Only include config if it's not the proofreading step
-                ...(fileData && mimeType && { generationConfig: generationConfig })
-            };
-            
-            // NOTE: For the proofreading step, we send just the text prompt without the generationConfig
-            // to allow the model to return clean text, not a JSON string. The server handles this correctly.
-            if (!fileData) {
-                delete payload.generationConfig;
-            }
-
-
-            const response = await fetch('/api/transcribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `API request failed with status ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            // Check for potential safety blocks or empty responses
-            if (result.candidates && result.candidates.length > 0) {
-                 if (result.candidates[0].content && result.candidates[0].content.parts &&
-                     result.candidates[0].content.parts.length > 0) {
-                     // For transcription, this is the JSON string. For proofreading, this is the corrected text.
-                     return result.candidates[0].content.parts[0].text;
-                 }
-            }
-            
-            // Handle cases where the response is valid but contains no text (e.g., safety stop)
-            if (result.candidates && result.candidates[0].finishReason !== 'STOP') {
-                 throw new Error(`The model stopped processing for the following reason: ${result.candidates[0].finishReason}. This may be due to safety settings or an issue with the prompt.`);
-            }
-
-            throw new Error('Could not process the request. The response from the model was empty.');
-        }
-
-        function copyToClipboard(text, messageElement) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                messageElement.textContent = 'Copied!';
-                setTimeout(() => { messageElement.textContent = ''; }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-                messageElement.textContent = 'Failed to copy!';
-            }
-            document.body.removeChild(textArea);
-        }
-    </script>
+  <script src="index.js"></script>
 </body>
 </html>
