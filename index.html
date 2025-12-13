@@ -41,9 +41,19 @@
 
             <div class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6">
                 <h2 class="text-xl font-semibold text-pink-300 mb-4">1. Upload a Handwritten Document</h2>
-                <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900/50 file:text-pink-300 hover:file:bg-pink-800/50 cursor-pointer"/>
+                <input type="file" id="image-upload" accept="image/*,application/pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-900/50 file:text-pink-300 hover:file:bg-pink-800/50 cursor-pointer"/>
                 <div id="image-preview-container" class="mt-4 border rounded-lg bg-black/20 hidden">
                     <img id="image-preview" src="#" alt="Image Preview" />
+                </div>
+            </div>
+
+            <div id="pdf-controls-section" class="border-2 border-dashed border-gray-600 rounded-lg p-4 flex flex-col items-center mb-6 hidden">
+                <h2 class="text-xl font-semibold text-pink-300 mb-4">Select Pages to Transcribe</h2>
+                <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 w-full justify-center">
+                    <div class="flex items-center space-x-2">
+                        <label for="page-range-input" class="text-gray-400 whitespace-nowrap">Page(s) (e.g., 1, 3-5, all):</label>
+                        <input type="text" id="page-range-input" value="all" class="flex-grow bg-gray-700 text-gray-200 border border-gray-600 rounded-lg p-2 focus:ring-pink-500 focus:border-pink-500"/>
+                    </div>
                 </div>
             </div>
 
@@ -62,6 +72,13 @@
                     <div id="transcribed-container" class="relative border-2 border-solid border-gray-700 rounded-lg p-4 bg-gray-900/50">
                         <div id="loader-transcribe" class="loader hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
                         <div id="transcribed-text" class="w-full bg-gray-800 p-4 rounded-md shadow-inner text-gray-200 min-h-[150px] whitespace-pre-wrap"></div>
+                        
+                        <div id="page-reader-controls" class="flex items-center justify-center space-x-4 mt-4 text-sm">
+                            <button id="prev-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>&leftarrow; Prev</button>
+                            <span id="page-counter" class="text-gray-200 whitespace-nowrap">Page 1 of 1</span>
+                            <button id="next-page-btn" class="px-3 py-1 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 disabled:bg-gray-700/50" disabled>Next &rightarrow;</button>
+                        </div>
+                        
                         <button id="copy-transcribed-btn" class="absolute top-2 right-2 px-3 py-1 bg-gray-600 text-pink-200 text-sm font-semibold rounded-lg hover:bg-gray-500 focus:outline-none">Copy</button>
                     </div>
                     <div id="copy-transcribed-message" class="text-pink-400 mt-1 text-sm text-right"></div>
@@ -108,51 +125,81 @@
         const copyTranscribedMessage = document.getElementById('copy-transcribed-message');
         const copyProofreadMessage = document.getElementById('copy-proofread-message');
 
-        // MODIFIED: Store an object with data and mimeType
+        // NEW DOM Elements for PDF Reader
+        const pdfControlsSection = document.getElementById('pdf-controls-section');
+        const pageRangeInput = document.getElementById('page-range-input');
+        const pageReaderControls = document.getElementById('page-reader-controls');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const pageCounter = document.getElementById('page-counter');
+        
+        // MODIFIED: State Variables
         let uploadedFileData = null;
+        let transcribedPages = []; // NEW: Array to store page-by-page transcription
+        let currentPageIndex = 0; // NEW: Current page being viewed (0-indexed)
 
-        // Event Listeners
+
+        // --- Core Functions ---
+
+        function updateReaderUI() {
+            // Only show page controls if it's a PDF with multiple transcribed pages
+            if (uploadedFileData.mimeType === 'application/pdf' && transcribedPages.length > 1) {
+                pageReaderControls.classList.remove('hidden');
+                const pageNumber = currentPageIndex + 1;
+                pageCounter.textContent = `Page ${pageNumber} of ${transcribedPages.length}`;
+                
+                transcribedTextDiv.textContent = transcribedPages[currentPageIndex].content;
+
+                prevPageBtn.disabled = currentPageIndex === 0;
+                nextPageBtn.disabled = currentPageIndex === transcribedPages.length - 1;
+            } else {
+                 pageReaderControls.classList.add('hidden');
+                 // If only one page, or the whole text was requested, display it all
+                 if (transcribedPages.length > 0) {
+                     transcribedTextDiv.textContent = transcribedPages[0].content;
+                 } else {
+                     transcribedTextDiv.textContent = 'No content found for the selected pages.';
+                 }
+            }
+            
+            // Re-enable proofread button if there is text to proofread
+            proofreadBtn.disabled = transcribedTextDiv.textContent.trim() === '' || transcribedTextDiv.textContent.startsWith('Error:');
+        }
+
+        // --- Event Listeners ---
+
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                // MODIFIED: Handle image preview differently from PDFs
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    uploadedFileData = {
+                        data: event.target.result.split(',')[1],
+                        mimeType: file.type
+                    };
+                    transcribeBtn.disabled = false;
+                };
+                
+                // Handle display/controls based on file type
                 if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        imagePreview.src = event.target.result;
-                        imagePreviewContainer.classList.remove('hidden');
-                        // Store the base64 data and mime type
-                        uploadedFileData = {
-                            data: event.target.result.split(',')[1],
-                            mimeType: file.type
-                        };
-                        transcribeBtn.disabled = false;
-                    };
                     reader.readAsDataURL(file);
+                    imagePreview.src = URL.createObjectURL(file);
+                    imagePreviewContainer.classList.remove('hidden');
+                    pdfControlsSection.classList.add('hidden'); // Hide PDF controls for images
+                    pageRangeInput.value = 'all'; // Reset to 'all' for single-page image
                 } else if (file.type === 'application/pdf') {
-                    // For PDFs, don't show a preview, just read the file
-                    imagePreviewContainer.classList.add('hidden'); // Hide image container
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                         uploadedFileData = {
-                            data: event.target.result.split(',')[1],
-                            mimeType: file.type
-                        };
-                        transcribeBtn.disabled = false;
-                    };
                     reader.readAsDataURL(file);
+                    imagePreviewContainer.classList.add('hidden'); // No preview for PDF
+                    pdfControlsSection.classList.remove('hidden'); // Show PDF controls
+                    // The API can handle large PDFs (up to 1000 pages or 50MB with gemini-2.5-flash).
                 } else {
-                    // Unsupported file type
                     alert("Unsupported file type. Please upload an image or a PDF.");
-                    imageUpload.value = ''; // Reset the input
+                    imageUpload.value = '';
                     return;
                 }
                 
                 // Reset UI for new file
-                resultsSection.classList.add('hidden');
-                transcribedTextDiv.textContent = '';
-                proofreadTextDiv.textContent = '';
-                proofreadBtn.disabled = true;
+                clearResults();
             }
         });
 
@@ -160,7 +207,15 @@
             imageUpload.value = '';
             imagePreview.src = '#';
             imagePreviewContainer.classList.add('hidden');
-            uploadedFileData = null; // MODIFIED
+            pdfControlsSection.classList.add('hidden'); // Hide PDF controls on clear
+            pageRangeInput.value = 'all'; // Reset range
+            clearResults();
+        });
+        
+        function clearResults() {
+            uploadedFileData = null;
+            transcribedPages = []; // Clear page data
+            currentPageIndex = 0; // Reset index
             transcribeBtn.disabled = true;
             proofreadBtn.disabled = true;
             resultsSection.classList.add('hidden');
@@ -169,10 +224,10 @@
             proofreadTextDiv.textContent = '';
             copyTranscribedMessage.textContent = '';
             copyProofreadMessage.textContent = '';
-        });
+            pageReaderControls.classList.add('hidden'); // Hide page controls
+        }
 
         transcribeBtn.addEventListener('click', async () => {
-            // MODIFIED: Check for the new data object
             if (!uploadedFileData) return;
 
             resultsSection.classList.remove('hidden');
@@ -181,16 +236,37 @@
             loaderTranscribe.classList.remove('hidden');
             transcribeBtn.disabled = true;
             proofreadBtn.disabled = true;
+            
+            // Reset state
+            transcribedPages = [];
+            currentPageIndex = 0;
 
             try {
-                // MODIFIED: Prompt now works for images or documents
-                const prompt = "Transcribe the handwriting or text from the document. Return only the transcribed text.";
-                // MODIFIED: Pass the data and mimeType from the uploaded file object
-                const text = await callGeminiAPI(prompt, uploadedFileData.data, uploadedFileData.mimeType);
-                transcribedTextDiv.textContent = text.trim();
-                if (text.trim()) {
-                    proofreadBtn.disabled = false;
+                const range = pageRangeInput.value.trim().toLowerCase();
+                let prompt = `Transcribe the handwriting or text from the document. ${uploadedFileData.mimeType === 'application/pdf' ? `The document is a multi-page PDF. ONLY transcribe content for the following pages/range: **${range}**.` : 'Return all text from the image.'}
+                Your output must be a single JSON object that strictly follows this structure: 
+                {\\"transcription\\": [ {\\"page\\": "1", \\"content\\": "..."} ] } 
+                The 'page' value should be the page number (as a string, starting at 1). For a single image, use page "1". The 'content' should be the full transcribed text for that page/image.`;
+
+                // 1. Call API to get structured JSON response
+                const jsonText = await callGeminiAPI(prompt, uploadedFileData.data, uploadedFileData.mimeType);
+                
+                // 2. Parse the JSON response
+                const resultObject = JSON.parse(jsonText);
+
+                // 3. Store the result and update UI
+                if (resultObject.transcription && Array.isArray(resultObject.transcription)) {
+                    transcribedPages = resultObject.transcription.filter(p => p.content && p.content.trim() !== '');
+                    if (transcribedPages.length > 0) {
+                        currentPageIndex = 0;
+                        updateReaderUI(); // Display the first page or the single result
+                    } else {
+                        transcribedTextDiv.textContent = 'Transcription returned no text. Check the selected page range.';
+                    }
+                } else {
+                    throw new Error("API response was not in the expected structured JSON format.");
                 }
+
             } catch (error) {
                 console.error('Error during transcription:', error);
                 transcribedTextDiv.textContent = `Error: ${error.message}. Please check the console for details.`;
@@ -201,6 +277,7 @@
         });
 
         proofreadBtn.addEventListener('click', async () => {
+            // Proofread the currently displayed page/text
             const textToProofread = transcribedTextDiv.textContent;
             if (!textToProofread) return;
 
@@ -211,7 +288,7 @@
 
             try {
                 const prompt = `Please proofread and correct the following text for any grammatical errors, spelling mistakes, or typos. Return only the corrected text, without any introductory phrases.\n\nText to proofread:\n"${textToProofread}"`;
-                // MODIFIED: API call for proofreading doesn't need file data
+                // API call for proofreading does not need file data
                 const correctedText = await callGeminiAPI(prompt); 
                 proofreadTextDiv.textContent = correctedText.trim();
             } catch (error) {
@@ -220,6 +297,25 @@
             } finally {
                 loaderProofread.classList.add('hidden');
                 proofreadBtn.disabled = false;
+            }
+        });
+
+        // NEW: Page Navigation Handlers
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPageIndex > 0) {
+                currentPageIndex--;
+                proofreadTextDiv.textContent = ''; // Clear proofread section when changing page
+                proofreadSection.classList.add('hidden');
+                updateReaderUI();
+            }
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            if (currentPageIndex < transcribedPages.length - 1) {
+                currentPageIndex++;
+                proofreadTextDiv.textContent = ''; // Clear proofread section when changing page
+                proofreadSection.classList.add('hidden');
+                updateReaderUI();
             }
         });
 
@@ -233,15 +329,30 @@
 
 
         // Helper Functions
-        // MODIFIED: Function signature changed to accept mimeType
         async function callGeminiAPI(prompt, fileData = null, mimeType = null) {
             const parts = [{ text: prompt }];
-            // MODIFIED: Check for fileData and mimeType before adding to parts
             if (fileData && mimeType) {
+                // Documents are sent as inlineData parts
                 parts.push({ inlineData: { mimeType: mimeType, data: fileData } });
             }
+            
+            // Instruct the model to return a JSON object
+            const generationConfig = {
+                responseMimeType: "application/json",
+            };
 
-            const payload = { contents: [{ parts: parts }] };
+            const payload = { 
+                contents: [{ parts: parts }],
+                // Only include config if it's not the proofreading step
+                ...(fileData && mimeType && { generationConfig: generationConfig })
+            };
+            
+            // NOTE: For the proofreading step, we send just the text prompt without the generationConfig
+            // to allow the model to return clean text, not a JSON string. The server handles this correctly.
+            if (!fileData) {
+                delete payload.generationConfig;
+            }
+
 
             const response = await fetch('/api/transcribe', {
                 method: 'POST',
@@ -260,6 +371,7 @@
             if (result.candidates && result.candidates.length > 0) {
                  if (result.candidates[0].content && result.candidates[0].content.parts &&
                      result.candidates[0].content.parts.length > 0) {
+                     // For transcription, this is the JSON string. For proofreading, this is the corrected text.
                      return result.candidates[0].content.parts[0].text;
                  }
             }
